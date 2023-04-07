@@ -17,136 +17,94 @@ module top(
     output wire mclk
     );
 
-    HSOSC #(.CLKHF_DIV(2'b01)) OSCInst0 (
-        .CLKHFEN(1'b1),
-        .CLKHFPU(1'b1),
-        .CLKHF(mclk)
-    );
+/*module top (
+    input           ymclk,
+    input           rst_n,
+    input           a0,
+    input           wr_n,
+    input           rd_n,
+    input           cs_n,
+    inout   [7:0]   data,
+    output          irq_n,
+    output          ct1,
+    output          ct2,
 
-    wire sh;
-    wire signed [15:0] ym_left;
-    wire signed [15:0] ym_right;
+    output          i2s_data,
+    output          mclk,
+    output          i2s_bck,
+    output          i2s_lrclk
+);*/
 
-    wire rst;
-    assign rst = !rst_n;
+reg     [7:0]   din_b;
+reg             a0_b;
+reg             wrt_b;
+reg             wr_b;
+wire    [7:0]   dout;
+wire            sample;
+wire    [23:0]  left_data;
+wire    [23:0]  right_data;
+reg             p1;
+reg     [5:0]   rst;
 
-    wire [7:0] data_in;
-    wire [7:0] data_out;
+wire sh;
+wire signed [15:0] ym_left;
+wire signed [15:0] ym_right;
 
-    // Handle incoming bus reads
-    wire bus_read = !cs_n && !rd_n && wr_n;
+assign data = rd_n ? dout : 8'bZ;
 
-    // incoming bus writes
-    wire bus_write = !cs_n && !wr_n;
-    assign data_in = bus_write ? data : 8'hFF;
-    reg m_ym_clk_en;
-    reg [2:0] m_wr_q;
-    reg [2:0] m_a0_q;
-    reg [2:0] m_ymclk_q;
-    reg [7:0] m_data_in_0;
-    reg [7:0] m_data_in_1;
-    reg [7:0] m_data_in_2;
+HSOSC #(.CLKHF_DIV(2'b01)) OSCInst0 (
+    .CLKHFEN(1'b1),
+    .CLKHFPU(1'b1),
+    .CLKHF(mclk)
+);
 
-    wire m_wr_negedge = m_wr_q[2:1] == 2'b10;
-    wire m_ym_posedge = m_ymclk_q[2:1] == 2'b01;
-
-    reg m_wr, m_wr_next;
-    reg m_a0, m_a0_next;
-    reg [7:0] m_data_in, m_data_in_next;
-    reg m_ym_clk, m_ym_clk_next;
-    reg [1:0] m_ym_clk_tgt, m_ym_clk_tgt_next;
-    reg [1:0] m_ym_clk_neg_ctr, m_ym_clk_neg_ctr_next;
-
-    always @(*) begin
-        m_wr_next = m_wr;
-        m_a0_next = m_a0;
-        m_data_in_next = m_data_in;
-        m_ym_clk_tgt_next = m_ym_clk_tgt;
-        if (m_wr_negedge) begin
-            m_wr_next = 1'b0;
-            m_a0_next = m_a0_q[2];
-            m_data_in_next = m_data_in_2;
-            m_ym_clk_tgt_next = m_ym_clk_neg_ctr + 1'b1 + m_ym_posedge;
-        end else if (m_ym_clk_tgt == m_ym_clk_neg_ctr) begin
-            m_wr_next = 1'b1;
-        end
-        m_ym_clk_next = m_ym_posedge ? 1 : 0;
+always @(posedge ymclk, negedge rst_n) begin
+    if (!rst_n) begin
+        // hold reset pulse to be long enough to clear all BRAM shifters
+        p1 <= 0;
+        rst <= 6'b111111;
+    end else begin
+        p1 <= !p1;
+        rst <= |rst ? (rst - 6'b1) : 6'b0;
     end
+end
 
-    always @(posedge mclk or posedge rst) begin
-        if (rst) begin
-            m_wr <= 1'b0;
-            m_a0 <= 1'b0;
-            m_data_in <= 8'b0;
-            m_ym_clk <= 1'b0;
-            m_ym_clk_tgt <= 2'b00;
-        end else begin
-            m_wr <= m_wr_next;
-            m_a0 <= m_a0_next;
-            m_data_in <= m_data_in_next;
-            m_ym_clk <= m_ym_clk_next;
-            m_ym_clk_tgt <= m_ym_clk_tgt_next;
-        end
+// emulate YM2151 asynchronous write timing as jt51 expects a synchronous one
+always @(posedge wr_n, negedge rst_n) begin
+    if (!rst_n) begin
+        din_b <= 0;
+        a0_b <= 0;
+        wrt_b <= 0;
+    end else begin
+        din_b <= data;
+        a0_b <= a0;
+        wrt_b <= !wrt_b;
     end
+end
 
-    always @(posedge mclk or posedge rst) begin
-        if (rst) begin
-            m_wr_q[2:0] <= 3'b0;
-            m_a0_q[2:0] <= 3'b0;
-            m_ymclk_q[2:0] <= 3'b0;
-            m_data_in_0 <= 8'b0;
-            m_data_in_1 <= 8'b0;
-            m_data_in_2 <= 8'b0;
-        end else begin
-            m_wr_q[2:0] <= {m_wr_q[1:0], bus_write};
-            m_a0_q[2:0] <= {m_a0_q[1:0], a0};
-            m_ymclk_q[2:0] <= {m_ymclk_q[1:0], ymclk};
-            m_data_in_0 <= data_in;
-            m_data_in_1 <= m_data_in_0;
-            m_data_in_2 <= m_data_in_1;
-        end
-    end
+always @(posedge ymclk) begin
+    wr_b <= wrt_b;
+end
 
-    wire busy = data_out[7];
+jt51 u_jt51(
+    .rst    ( |rst          ),
+    .clk    ( ymclk         ),
+    .cen    ( 1'b1          ),
+    .cen_p1 ( p1            ),
+    .cs_n   ( cs_n       ),
+    .wr_n   ( wr_b == wrt_b ),
+    .a0     ( a0_b          ),
+    .din    ( din_b         ),
+    .dout   ( dout          ),
 
-    assign data = bus_read ? { busy, data_out[6:0] } : 8'bZ;
-    // generate half speed clock enable
-    // drive ym_clk_en on negedge ymclk to ensure that ym_clk_en is always high before posedge ymclk
-    always @(*) begin
-        m_ym_clk_neg_ctr_next = m_ym_clk_neg_ctr + 1'b1;
-    end
-    always @(negedge m_ym_clk or posedge rst) begin
-        if(rst) begin
-            m_ym_clk_en <= 1'b0;
-            m_ym_clk_neg_ctr <= 2'b0;
-        end else begin
-            m_ym_clk_en <= ~m_ym_clk_en;
-            m_ym_clk_neg_ctr <= m_ym_clk_neg_ctr_next;
-        end
-    end
+    .ct1    ( ct1        ),
+    .ct2    ( ct2        ),
+    .irq_n  ( irq_n      ),
 
-    assign dbg_data[7:0] = {m_wr_negedge, m_ym_posedge, m_ym_clk_tgt[1:0], m_ym_clk_neg_ctr[1:0], mclk, m_ym_clk}; //{m_wr_negedge, busy, 3'b0, 1'b0, 1'b0, m_wr};
-    assign dbg[2:0] = {m_a0, m_wr, busy};
-
-  jt51 YM2151 (
-    .rst(rst),
-    .clk(m_ym_clk),
-    .cen(1'b1),
-    .cen_p1(m_ym_clk_en),
-    .cs_n(m_wr), // .cs_n(cs_n),
-    .wr_n(m_wr),
-    .a0(m_a0),
-    .din(m_data_in),//	.din(data),
-    .dout(data_out),
-    .ct1(ct1),
-    .ct2(ct2),
-    .irq_n(irq_n),
-    .sample(sh),
-    .xleft(ym_left),
-    .xright(ym_right)
-//    , .dbg(dbg)
-//    , .dbg_data(dbg_data)
-  );
+    .sample (  sh           ),
+    .xleft  ( ym_left     ),
+    .xright ( ym_right    )
+);
 
     reg signed [23:0] dac_left_r;
     reg signed [23:0] dac_right_r;
@@ -165,8 +123,8 @@ module top(
         end
     end
 
-    always @(posedge ymclk or posedge rst) begin
-        if (rst) begin
+    always @(posedge ymclk or negedge rst_n) begin
+        if (!rst_n) begin
             ym_left_r <= 24'b0;
             ym_right_r <= 24'b0;
         end else begin
@@ -175,8 +133,8 @@ module top(
         end
     end
 
-    always @(posedge dac_ready or posedge rst) begin
-        if (rst) begin
+    always @(posedge dac_ready or negedge rst_n) begin
+        if (!rst_n) begin
             dac_left_r <= 24'b0;
             dac_right_r <= 24'b0;
         end else begin
@@ -186,13 +144,13 @@ module top(
     end
 
   reg hfclk_div2;
-  always @(posedge mclk or posedge rst) begin
-    if (rst) hfclk_div2 <= 1'b0;
+  always @(posedge mclk or negedge rst_n) begin
+    if (!rst_n) hfclk_div2 <= 1'b0;
     else hfclk_div2 <= ~hfclk_div2;
   end
 
   dacif dacif (
-    .rst(rst),
+    .rst(|rst),
     .clk(hfclk_div2),
     .next_sample(dac_ready),
     .left_data(dac_left_r),
