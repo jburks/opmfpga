@@ -1,5 +1,5 @@
 # Clock input
-ldc_set_location -site {20} [get_ports ymclk]
+ldc_set_location -site {20} [get_ports clk]
 
 # LEDs
 
