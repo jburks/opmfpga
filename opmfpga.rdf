@@ -2,7 +2,7 @@
 <RadiantProject version="4.2" title="opmfpga" device="iCE40UP5K-SG48I" performance_grade="High-Performance_1.2V" default_implementation="impl">
     <Options/>
     <Implementation title="impl" dir="impl" description="impl" synthesis="lse" default_strategy="Strategy1">
-        <Options VerilogStandard="System Verilog" def_top="PllClk" top="top"/>
+        <Options VerilogStandard="System Verilog" def_top="sep32_cnt" top="top"/>
         <Source name="source/top.v" type="Verilog" type_short="Verilog">
             <Options top_module="top"/>
         </Source>
@@ -81,13 +81,7 @@
         <Source name="source/sep32_cnt.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
-        <Source name="jt51_sh_ebr/jt51_sh_ebr.ipx" type="IPX_Module" type_short="IPX">
-            <Options/>
-        </Source>
-        <Source name="PllClk/PllClk.ipx" type="IPX_Module" type_short="IPX">
-            <Options/>
-        </Source>
-        <Source name="jt51_sh_ebr/rtl/ebr_sh.v" type="Verilog" type_short="Verilog">
+        <Source name="source/ebr_sh.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
         <Source name="source/impl.xcf" type="Programming Project File" type_short="Programming">
