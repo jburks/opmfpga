@@ -37,8 +37,9 @@ module top(
 
 reg     [7:0]   din_b;
 reg             a0_b;
-reg             wrt_b;
-reg             wr_b;
+reg             wrt_b;  // Write trigger
+reg             wr_b;   // Write signal into JT51 core
+reg             wrp_b;  // Write trigger positive pulse match
 wire    [7:0]   dout;
 wire            sample;
 wire    [23:0]  left_data;
@@ -50,7 +51,7 @@ wire sh;
 wire signed [15:0] ym_left;
 wire signed [15:0] ym_right;
 
-assign data = rd_n ? dout : 8'bZ;
+assign data = (!rd_n & !cs_n) ? dout : 8'bZ;
 
 HSOSC #(.CLKHF_DIV(2'b01)) OSCInst0 (
     .CLKHFEN(1'b1),
@@ -70,7 +71,8 @@ always @(posedge ymclk, negedge rst_n) begin
 end
 
 // emulate YM2151 asynchronous write timing as jt51 expects a synchronous one
-always @(posedge wr_n, negedge rst_n) begin
+assign write_n = wr_n | cs_n;
+always @(posedge write_n, negedge rst_n) begin
     if (!rst_n) begin
         din_b <= 0;
         a0_b <= 0;
@@ -83,7 +85,8 @@ always @(posedge wr_n, negedge rst_n) begin
 end
 
 always @(posedge ymclk) begin
-    wr_b <= wrt_b;
+    wr_b <= (wrp_b == wrt_b);
+    wrp_b <= wrt_b;
 end
 
 jt51 u_jt51(
@@ -91,8 +94,8 @@ jt51 u_jt51(
     .clk    ( ymclk         ),
     .cen    ( 1'b1          ),
     .cen_p1 ( p1            ),
-    .cs_n   ( cs_n       ),
-    .wr_n   ( wr_b == wrt_b ),
+    .cs_n   ( wr_b       ),
+    .wr_n   ( wr_b ),
     .a0     ( a0_b          ),
     .din    ( din_b         ),
     .dout   ( dout          ),
@@ -104,7 +107,12 @@ jt51 u_jt51(
     .sample (  sh           ),
     .xleft  ( ym_left     ),
     .xright ( ym_right    )
+
+    , .dbg(dbg)
+//    , .dbg_data(dbg_data)
 );
+
+    assign dbg_data = {wr_b, wrt_b, cs_n, wr_n, rd_n, wrp_b, 1'b0, a0 };
 
     reg signed [23:0] dac_left_r;
     reg signed [23:0] dac_right_r;
