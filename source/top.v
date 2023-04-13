@@ -17,24 +17,6 @@ module top(
     output wire mclk
     );
 
-/*module top (
-    input           ymclk,
-    input           rst_n,
-    input           a0,
-    input           wr_n,
-    input           rd_n,
-    input           cs_n,
-    inout   [7:0]   data,
-    output          irq_n,
-    output          ct1,
-    output          ct2,
-
-    output          i2s_data,
-    output          mclk,
-    output          i2s_bck,
-    output          i2s_lrclk
-);*/
-
 reg     [7:0]   din_b;
 reg             a0_b;
 reg             wrt_b;  // Write trigger
@@ -47,16 +29,25 @@ wire    [23:0]  right_data;
 reg             p1;
 reg     [5:0]   rst;
 
+reg [7:0] din_q_1, din_q_0;
+
 wire sh;
 wire signed [15:0] ym_left;
 wire signed [15:0] ym_right;
 
 assign data = (!rd_n & !cs_n) ? dout : 8'bZ;
 
-HSOSC #(.CLKHF_DIV(2'b01)) OSCInst0 (
+reg mclk_r;
+assign mclk = mclk_r;
+wire hsclk;
+always @(posedge hsclk) begin
+    mclk_r <= ~mclk_r;
+end
+
+HSOSC #(.CLKHF_DIV(2'b00)) OSCInst0 (
     .CLKHFEN(1'b1),
     .CLKHFPU(1'b1),
-    .CLKHF(mclk)
+    .CLKHF(hsclk)
 );
 
 always @(posedge ymclk, negedge rst_n) begin
@@ -75,12 +66,24 @@ assign write_n = wr_n | cs_n;
 always @(posedge write_n, negedge rst_n) begin
     if (!rst_n) begin
         din_b <= 0;
-        a0_b <= 0;
         wrt_b <= 0;
     end else begin
-        din_b <= data;
-        a0_b <= a0;
+        din_b <= din_q_1; //data;
         wrt_b <= !wrt_b;
+    end
+end
+
+// data queue from the bus
+always @(posedge hsclk) begin
+    din_q_1 <= din_q_0;
+    din_q_0 <= data; //write_n ? 8'b0 : data[7:0];
+end
+
+always @(negedge write_n, negedge rst_n) begin
+    if (!rst_n) begin
+        a0_b <= 0;
+    end else begin
+        a0_b <= a0;
     end
 end
 
@@ -94,10 +97,10 @@ jt51 u_jt51(
     .clk    ( ymclk         ),
     .cen    ( 1'b1          ),
     .cen_p1 ( p1            ),
-    .cs_n   ( wr_b       ),
-    .wr_n   ( wr_b ),
+    .cs_n   ( wr_b          ),
+    .wr_n   ( wr_b          ),
     .a0     ( a0_b          ),
-    .din    ( din_b         ),
+    .din    ( din_b       ),
     .dout   ( dout          ),
 
     .ct1    ( ct1        ),
@@ -109,11 +112,12 @@ jt51 u_jt51(
     .xright ( ym_right    )
 
     , .dbg(dbg)
-//    , .dbg_data(dbg_data)
+    , .dbg_data(dbg_data)
 );
 
-    assign dbg_data = {wr_b, wrt_b, cs_n, wr_n, rd_n, wrp_b, 1'b0, a0 };
 
+//    assign dbg_data = {wr_b, wrt_b, cs_n, wr_n, rd_n, wrp_b, dout[7], a0 };
+    assign dbg[0] = hsclk;
     reg signed [23:0] dac_left_r;
     reg signed [23:0] dac_right_r;
     reg signed [15:0] ym_left_r;

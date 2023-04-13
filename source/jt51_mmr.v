@@ -131,12 +131,15 @@ parameter   REG_TEST    =   8'h01,
 reg csm;
 
 reg [7:0] dbg_data_r;
-reg [2:0] dbg_r;
+reg [1:0] dbg_r;
 
-always @(posedge clk)
-    dbg_data_r <= write ? din : 8'b0;
+always @(posedge clk) begin
+    dbg_data_r <= write ? din : cen ? din_copy : selected_register;
+    dbg_r <= {a0, write};
+end
+
 assign dbg_data = dbg_data_r;
-assign dbg[2:0] = {a0, write, clk};
+assign dbg[2:1] = dbg_r;
 
 always @(posedge clk, posedge rst) begin : memory_mapped_registers
     if( rst ) begin
