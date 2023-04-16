@@ -13,15 +13,16 @@ module top(
     output wire i2s_bck,
     output wire i2s_data,
 	output wire [3:0] dbg,
-    output wire [7:0] dbg_data,
+    output reg [7:0] dbg_data,
     output wire mclk
     );
-
+ /* synthesis RGB_TO_GPIO = "dbg_data[5:3]" */
+ 
 reg     [7:0]   din_b;
 reg             a0_b;
 reg             wrt_b;  // Write trigger
 reg             wr_b;   // Write signal into JT51 core
-reg             wrp_b;  // Write trigger positive pulse match
+reg             wrp_b, wrp_b_1, wrp_b_2;  // Write trigger positive pulse match
 wire    [7:0]   dout;
 wire            sample;
 wire    [23:0]  left_data;
@@ -29,13 +30,16 @@ wire    [23:0]  right_data;
 reg             p1;
 reg     [5:0]   rst;
 
-reg [7:0] din_q_1, din_q_0;
+reg [7:0] din_q_2, din_q_1, din_q_0;
 
 wire sh;
 wire signed [15:0] ym_left;
 wire signed [15:0] ym_right;
 
-assign data = (!rd_n & !cs_n) ? dout : 8'bZ;
+reg busy_leader, busy_follower;
+wire busy_local = (busy_leader != busy_follower) | dout[7];
+
+assign data = (!rd_n & !cs_n) ? {busy_local,dout[6:0]} : 8'bZ;
 
 reg mclk_r;
 assign mclk = mclk_r;
@@ -44,7 +48,7 @@ always @(posedge hsclk) begin
     mclk_r <= ~mclk_r;
 end
 
-HSOSC #(.CLKHF_DIV(2'b00)) OSCInst0 (
+HSOSC #(.CLKHF_DIV("0b00")) OSCInst0 (
     .CLKHFEN(1'b1),
     .CLKHFPU(1'b1),
     .CLKHF(hsclk)
@@ -58,39 +62,52 @@ always @(posedge ymclk, negedge rst_n) begin
     end else begin
         p1 <= !p1;
         rst <= |rst ? (rst - 6'b1) : 6'b0;
+        
+		//dbg_data[3] <= p1;
     end
 end
 
 // emulate YM2151 asynchronous write timing as jt51 expects a synchronous one
-assign write_n = wr_n | cs_n;
+wire write_n = wr_n | cs_n;
 always @(posedge write_n, negedge rst_n) begin
     if (!rst_n) begin
         din_b <= 0;
         wrt_b <= 0;
     end else begin
-        din_b <= din_q_1; //data;
+        din_b <= data; //din_q_2; //data;
         wrt_b <= !wrt_b;
     end
 end
 
 // data queue from the bus
 always @(posedge hsclk) begin
+    din_q_2 <= din_q_1;
     din_q_1 <= din_q_0;
-    din_q_0 <= data; //write_n ? 8'b0 : data[7:0];
+    din_q_0 <= write_n ? 8'b0 : data[7:0];
 end
 
 always @(negedge write_n, negedge rst_n) begin
     if (!rst_n) begin
         a0_b <= 0;
+        busy_leader <= 1'b0;
     end else begin
         a0_b <= a0;
+        busy_leader <= ~busy_leader;
     end
 end
 
 always @(posedge ymclk) begin
-    wr_b <= (wrp_b == wrt_b);
+    wr_b <= (wrp_b_2 == wrt_b);
+    wrp_b_2 <= wrp_b_1;
+    wrp_b_1 <= wrp_b;
     wrp_b <= wrt_b;
 end
+
+always @(posedge dout[7], negedge rst_n) begin
+    if (!rst_n) busy_follower <= 1'b0;
+    else busy_follower <= busy_leader;
+end
+
 
 jt51 u_jt51(
     .rst    ( |rst          ),
@@ -111,13 +128,10 @@ jt51 u_jt51(
     .xleft  ( ym_left     ),
     .xright ( ym_right    )
 
-    , .dbg(dbg)
-    , .dbg_data(dbg_data)
+//    , .dbg(dbg_w)
+//    , .dbg_data(dbg_data_w)
 );
 
-
-//    assign dbg_data = {wr_b, wrt_b, cs_n, wr_n, rd_n, wrp_b, dout[7], a0 };
-    assign dbg[0] = hsclk;
     reg signed [23:0] dac_left_r;
     reg signed [23:0] dac_right_r;
     reg signed [15:0] ym_left_r;

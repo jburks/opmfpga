@@ -1,16 +1,5 @@
 # Clock input
 ldc_set_location -site {20} [get_ports ymclk]
-
-# LEDs
-
-# 41
-# 40
-# 39
-
-#ldc_set_location -site {39} [get_ports led_green]
-#ldc_set_location -site {40} [get_ports led_blue]
-#ldc_set_location -site {41} [get_ports led_red]
-
 # control signals
 # 23
 # 25
@@ -28,17 +17,6 @@ ldc_set_location -site {31} [get_ports rd_n]
 ldc_set_location -site {32} [get_ports cs_n]
 ldc_set_location -site {34} [get_ports ct1]
 ldc_set_location -site {37} [get_ports ct2]
-
-# Debug 1-4
-# 34
-# 43
-# 36
-# 42
-ldc_set_location -site {10} [get_ports {dbg[0]}]
-ldc_set_location -site {11} [get_ports {dbg[1]}]
-ldc_set_location -site {12} [get_ports {dbg[2]}]
-ldc_set_location -site {13} [get_ports {dbg[3]}]
-
 # data bus
 ldc_set_location -site {44} [get_ports {data[0]}]
 ldc_set_location -site {45} [get_ports {data[1]}]
@@ -48,7 +26,23 @@ ldc_set_location -site {48} [get_ports {data[4]}]
 ldc_set_location -site {2} [get_ports {data[5]}]
 ldc_set_location -site {3} [get_ports {data[6]}]
 ldc_set_location -site {4} [get_ports {data[7]}]
-
+# i2s interface
+# 13
+# 21
+# 12
+ldc_set_location -site {19} [get_ports i2s_lrck]
+ldc_set_location -site {21} [get_ports i2s_bck]
+ldc_set_location -site {18} [get_ports i2s_data]
+ldc_set_location -site {23} [get_ports mclk]
+# Debug 1-4
+# 34
+# 43
+# 36
+# 42
+ldc_set_location -site {10} [get_ports {dbg[0]}]
+ldc_set_location -site {11} [get_ports {dbg[1]}]
+ldc_set_location -site {12} [get_ports {dbg[2]}]
+ldc_set_location -site {13} [get_ports {dbg[3]}]
 # Debug data
 ldc_set_location -site {35} [get_ports {dbg_data[0]}]
 ldc_set_location -site {36} [get_ports {dbg_data[1]}]
@@ -58,15 +52,4 @@ ldc_set_location -site {40} [get_ports {dbg_data[4]}]
 ldc_set_location -site {41} [get_ports {dbg_data[5]}]
 ldc_set_location -site {42} [get_ports {dbg_data[6]}]
 ldc_set_location -site {43} [get_ports {dbg_data[7]}]
-
-# i2s interface
-# 13
-# 21
-# 12
-ldc_set_location -site {19} [get_ports i2s_lrck]
-ldc_set_location -site {21} [get_ports i2s_bck]
-ldc_set_location -site {18} [get_ports i2s_data]
-
-# last debug data bit
-# 10
-ldc_set_location -site {23} [get_ports mclk]
+ldc_set_attribute {USE_PRIMARY=TRUE} [get_nets ymclk_c]

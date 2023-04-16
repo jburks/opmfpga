@@ -100,7 +100,7 @@ module jt51_mmr(
     output          use_prev2,
     output          use_prev1,
     output [3:0] dbg,
-    output [7:0] dbg_data
+    output [7:0] dbg_data /* synthesis RGB_TO_GPIO = "dbg_data[5:3]" */
 );
 
 reg [7:0] selected_register, din_copy ;
@@ -131,15 +131,15 @@ parameter   REG_TEST    =   8'h01,
 reg csm;
 
 reg [7:0] dbg_data_r;
-reg [1:0] dbg_r;
+reg [3:0] dbg_r;
 
 always @(posedge clk) begin
-    dbg_data_r <= write ? din : cen ? din_copy : selected_register;
+    dbg_data_r <= selected_register[7:0]; //write ? din : cen ? din_copy : selected_register;
+    //dbg_data <= selected_register; //write ? din : cen ? din_copy : selected_register;
     dbg_r <= {a0, write};
 end
-
+assign dbg = dbg_r;
 assign dbg_data = dbg_data_r;
-assign dbg[2:1] = dbg_r;
 
 always @(posedge clk, posedge rst) begin : memory_mapped_registers
     if( rst ) begin
@@ -262,23 +262,23 @@ always @(posedge clk, posedge rst) begin : memory_mapped_registers
     end
 end
 
-reg [4:0] busy_cnt; // busy lasts for 32 synth clock cycles
+reg [5:0] busy_cnt; // busy lasts for 32 synth clock cycles
 reg       old_write;
 
 always @(posedge clk)
     if( rst ) begin
         busy <= 1'b0;
-        busy_cnt <= 5'd0;
+        busy_cnt <= 6'd0;
     end
     else begin
         old_write <= write;
         if (!old_write && write && a0 ) begin // only set for data writes
             busy <= 1'b1;
-            busy_cnt <= 5'd0;
+            busy_cnt <= 6'd0;
         end
         else if(cen) begin
-            if( busy_cnt == 5'd31 ) busy <= 1'b0;
-            busy_cnt <= busy_cnt+5'd1;
+            if( busy_cnt == 6'd63 ) busy <= 1'b0;
+            busy_cnt <= busy_cnt+6'd1;
         end
     end
 

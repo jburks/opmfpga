@@ -122,7 +122,7 @@ always @(*) begin
     end
 end
 
-ebr_sh #(.width(16),.stages(8)) u_acc(
+jt51_sh #(.width(16),.stages(8),.bram(0)) u_acc(
     .rst    ( rst       ),
     .clk    ( clk       ),
     .cen    ( cen       ),

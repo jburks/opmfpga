@@ -42,7 +42,7 @@ module jt51(
     output  signed  [15:0] xright,
 
     output [3:0] dbg,
-    output [7:0] dbg_data
+    output [7:0] dbg_data /* synthesis RGB_TO_GPIO = "dbg_data[5:3]" */
 );
 
 // Timers
