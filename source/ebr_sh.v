@@ -10,9 +10,9 @@ module ebr_sh #(parameter width=5, stages=32, rstval=1'b0 ) (clk,
     input [(width-1):0] din ;
     output [(width-1):0] drop ;
 
-    localparam addr_width = clog2((stages + 1));
+    localparam addr_width = clog2(stages);
 
-    (* syn_ramstyle="block_ram" *) reg [(width - 1):0] mem [((2 ** addr_width) - 1):0] ; // should be log2(stages)
+    (* syn_ramstyle="block_ram" *) reg [(width - 1):0] mem [((2 ** addr_width) - 1):0] ;
 
     reg [(addr_width - 1):0] wr_addr_r, wr_addr_next_r ;
     reg [(addr_width - 1):0] rd_addr_r, rd_addr_next_r ;

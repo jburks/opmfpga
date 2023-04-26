@@ -14,13 +14,22 @@ module dacif(
     output wire        i2s_bck,
     output wire        i2s_data);
 
+    // LRCLK divider calculation
+    //
+    // dacclk = 12MHz; ymclk = 3.579545 MHz
+    //
+    //    dacclk / (2*(div_max+1)) = ymclk / 32
+    // => div_max = (12 / (3.579545/32) / 2) - 1
+    // => div_max = 53.68 - 1
+    // => div_max = 52.68 ~= 53
+
     // Generate LRCK
     reg  [7:0] div_r;
     wire [7:0] div_max = 8'd53; // 8'd255;
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            div_r    <= 'd60;
+            div_r    <= 'd0;
             i2s_lrck <= 0;
         end else begin
             if (div_r == div_max) begin

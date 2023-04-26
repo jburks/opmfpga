@@ -92,7 +92,7 @@ ebr_sh #( .width(31), .stages(32)) u_reg0op(
 );
 
 // reset to one
-jt51_sh #( .width(11), .stages(32), .rstval(1'b1), .bram(0)) u_reg1op(
+ebr_sh #( .width(11), .stages(32), .rstval(1'b1)) u_reg1op(
     .rst    ( rst      ),
     .clk  ( clk      ),
     .cen    ( cen      ),

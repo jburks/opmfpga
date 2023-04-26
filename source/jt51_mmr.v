@@ -262,23 +262,23 @@ always @(posedge clk, posedge rst) begin : memory_mapped_registers
     end
 end
 
-reg [5:0] busy_cnt; // busy lasts for 32 synth clock cycles
+reg [4:0] busy_cnt; // busy lasts for 32 synth clock cycles
 reg       old_write;
 
 always @(posedge clk)
     if( rst ) begin
         busy <= 1'b0;
-        busy_cnt <= 6'd0;
+        busy_cnt <= 5'd0;
     end
     else begin
         old_write <= write;
         if (!old_write && write && a0 ) begin // only set for data writes
             busy <= 1'b1;
-            busy_cnt <= 6'd0;
+            busy_cnt <= 5'd0;
         end
         else if(cen) begin
-            if( busy_cnt == 6'd63 ) busy <= 1'b0;
-            busy_cnt <= busy_cnt+6'd1;
+            if( busy_cnt == 5'd31 ) busy <= 1'b0;
+            busy_cnt <= busy_cnt+5'd1;
         end
     end
 
