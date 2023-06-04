@@ -164,8 +164,8 @@ jt51 u_jt51(
             dac_left_r <= 24'b0;
             dac_right_r <= 24'b0;
         end else begin
-            dac_left_r <= {ym_left_r[15], ym_left_r[15], ym_left_r[15:0], ym_left_r[15:10]};
-            dac_right_r <= {ym_right_r[15], ym_right_r[15], ym_right_r[15:0], ym_right_r[15:10]};
+            dac_left_r <= {ym_left_r[15], ym_left_r[15:0], ym_left_r[15:9]};
+            dac_right_r <= {ym_right_r[15], ym_right_r[15:0], ym_right_r[15:9]};
         end
     end
 

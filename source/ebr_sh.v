@@ -25,16 +25,16 @@ module ebr_sh #(parameter width=5, stages=32, rstval=1'b0 ) (clk,
         wipe_addr_next_r = wipe_addr_r;
 
         if (cen) begin
-            wr_addr_next_r = wr_addr_r + 1'b1;
-            rd_addr_next_r = rd_addr_r + 1'b1;
+            wr_addr_next_r = (wr_addr_r == stages-1) ? {addr_width{1'b0}} : wr_addr_r + 1'b1;
+            rd_addr_next_r = (rd_addr_r == stages-1) ? {addr_width{1'b0}} : rd_addr_r + 1'b1;
             wipe_addr_next_r = wipe_addr_r + 1'b1;
         end
     end
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            wr_addr_r <= 6'b0;
-            rd_addr_r <= 6'b1;
+            wr_addr_r <= 'b0;
+            rd_addr_r <= 'b1;
             raw_read_r <= {width{1'b0}};
         end else begin
             wr_addr_r <= wr_addr_next_r;

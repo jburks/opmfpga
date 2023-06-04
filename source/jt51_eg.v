@@ -337,7 +337,7 @@ jt51_sh #( .width(10), .stages(3) ) u_egpadding (
 
 // Shift registers
 
-jt51_sh #( .width(10), .stages(32-7+2), .rstval(1'b1) ) u_eg1sh(
+ebr_sh #( .width(10), .stages(32-7+2), .rstval(1'b1) ) u_eg1sh(
     .rst    ( rst       ),
     .clk    ( clk       ),
     .cen    ( cen       ),

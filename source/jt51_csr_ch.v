@@ -62,7 +62,7 @@ wire [25:0] reg_out;
 
 assign { rl, fb, con, kc, kf, ams, pms  } = reg_out;
 
-jt51_sh #( .width(26), .stages(8)) u_regop(
+ebr_sh #( .width(26), .stages(8)) u_regop(
     .rst    ( rst     ),
     .clk    ( clk     ),
     .cen    ( cen     ),
